@@ -22,6 +22,7 @@ export function createElevenLabsTranslationEngine(params: SttSessionParams, onEv
   return createTranslationSocket(
     {
       deviceId: params.audioDeviceId,
+      stream: params.audioStream,
       sampleRate: 16000,
       connect: async () => {
         const target = params.translation?.targetLanguage.trim()

@@ -1,5 +1,5 @@
 /**
- * Shared mic → PCM16 capture for every STT engine but Soniox, whose SDK records on its own.
+ * Shared microphone or playback → PCM16 capture for STT engines.
  * AudioContext defaults to 16 kHz so the browser resamples; AudioWorklet blob-loaded
  * (userscript has no separate asset for `addModule()`). Targeted Bilibili pages
  * enforce no `script-src` CSP that would block the blob module.
@@ -23,10 +23,13 @@ class PcmTapProcessor extends AudioWorkletProcessor {
     this._n = 0
   }
   process(inputs) {
-    const channel = inputs[0][0]
+    const channels = inputs[0]
+    const channel = channels?.[0]
     if (!channel) return true
     for (let i = 0; i < channel.length; i++) {
-      this._buf[this._n++] = channel[i]
+      let sample = 0
+      for (const input of channels) sample += input[i] / channels.length
+      this._buf[this._n++] = sample
       if (this._n === this._size) {
         const frame = this._buf.slice(0)
         this.port.postMessage(frame, [frame.buffer])
@@ -40,13 +43,15 @@ registerProcessor('pcm-tap', PcmTapProcessor)
 `
 
 export interface PcmCapture {
-  /** Stop capture and release the mic + audio graph. Idempotent. */
+  /** Stop capture and release the stream + audio graph. Idempotent. */
   stop: () => void
 }
 
 export interface PcmCaptureOptions {
   /** Microphone device id; '' = system default. */
   deviceId: string
+  /** Use an existing playback stream instead of a microphone. */
+  stream?: MediaStream
   /** Samples per `onFrame` block; defaults to 4096 (256 ms). */
   frameSamples?: number
   /** Capture sample rate in Hz; defaults to 16000. */
@@ -67,7 +72,7 @@ export async function startPcmCapture(opts: PcmCaptureOptions): Promise<PcmCaptu
       channelCount: 1,
     },
   }
-  const stream = await navigator.mediaDevices.getUserMedia(constraints)
+  const stream = opts.stream ?? (await navigator.mediaDevices.getUserMedia(constraints))
   const context = new AudioContext({ sampleRate: opts.sampleRate ?? PCM_SAMPLE_RATE })
   try {
     const source = context.createMediaStreamSource(stream)

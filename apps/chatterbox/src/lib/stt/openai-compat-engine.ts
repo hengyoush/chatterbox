@@ -146,6 +146,7 @@ export function createOpenAiCompatEngine(params: SttSessionParams, onEvent: SttE
     onEvent({ type: 'state', state: 'connecting' })
     startPcmCapture({
       deviceId: params.audioDeviceId,
+      stream: params.audioStream,
       onFrame: frame => {
         if (paused || settled) return
         segmenter.push(frame)

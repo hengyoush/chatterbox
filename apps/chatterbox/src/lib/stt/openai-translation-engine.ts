@@ -13,6 +13,7 @@ export function createOpenAiTranslationEngine(params: SttSessionParams, onEvent:
   const engine = createTranslationSocket(
     {
       deviceId: params.audioDeviceId,
+      stream: params.audioStream,
       sampleRate: 24000,
       connect: async signal => {
         const key = params.apiKey.trim()

@@ -10,6 +10,8 @@ import type { SttEngine, SttEngineEventHandler, SttFinalizeOptions, SttSessionPa
 
 import { loadSoniox } from '../soniox'
 import { sonioxResultToChunks } from './normalize'
+import { PCM_SAMPLE_RATE } from './pcm-capture'
+import { createSonioxPlaybackSource } from './soniox-playback-source'
 
 /** Raw mono 16 kHz, DSP off: Soniox wants untouched audio, and pinning a `deviceId` must not silently re-enable browser echo-cancel/noise-suppress/AGC. */
 function buildMicConstraints(deviceId: string): MediaTrackConstraints | undefined {
@@ -36,10 +38,17 @@ export function createSonioxEngine(params: SttSessionParams, onEvent: SttEngineE
 
         const client: SonioxClient = new Soniox.SonioxClient({ config: { api_key: params.apiKey } })
         const constraints = buildMicConstraints(params.audioDeviceId)
-        const source = constraints ? new Soniox.MicrophoneSource({ constraints }) : undefined
+        const source = params.audioStream
+          ? createSonioxPlaybackSource(params.audioStream)
+          : constraints
+            ? new Soniox.MicrophoneSource({ constraints })
+            : undefined
 
         recording = client.realtime.record({
           model: params.model,
+          ...(params.audioStream
+            ? { audio_format: 'pcm_s16le' as const, sample_rate: PCM_SAMPLE_RATE, num_channels: 1 }
+            : {}),
           language_hints: params.languageHints,
           enable_endpoint_detection: true,
           // Range 0-3; level 1 is the mildest speedup. Higher finalizes sooner but can split utterances and lower accuracy.

@@ -1,7 +1,7 @@
 import { type Signal, useSignal } from '@preact/signals'
 import { useEffect, useRef } from 'preact/hooks'
 
-import type { SttChunk, SttModelOption, SttProvider, SttSessionParams } from '../lib/stt/types'
+import type { SttAudioSource, SttChunk, SttModelOption, SttProvider, SttSessionParams } from '../lib/stt/types'
 
 import { tryAiEvasion } from '../lib/ai-evasion'
 import { ensureRoomId, getCsrfToken } from '../lib/api'
@@ -61,6 +61,7 @@ import {
   sonioxTranslationEnabled,
   sonioxTranslationTarget,
   sttAudioDeviceId,
+  sttAudioSource,
   sttAutoSend,
   sttEndpointReached,
   sttMaxLength,
@@ -377,11 +378,12 @@ export function SttTab() {
     if (state.value !== 'stopped') resetState()
     // Match by name: DOM throws NotAllowedError/NotFoundError; Soniox adds Audio*Error subclasses.
     if (err.name === 'AudioPermissionError' || err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-      appendLog('❌ 麦克风权限被拒绝，请在浏览器设置中允许使用麦克风')
-      statusText.value = '麦克风权限被拒绝'
+      const inputName = sttAudioSource.value === 'microphone' ? '麦克风' : '标签页音频共享'
+      appendLog(`❌ 未获得${inputName}权限，请重新开始并允许所选音频来源`)
+      statusText.value = `未获得${inputName}权限`
     } else if (err.name === 'AudioDeviceError' || err.name === 'NotFoundError') {
-      appendLog('❌ 未找到麦克风设备')
-      statusText.value = '未找到麦克风'
+      appendLog('❌ 未找到可用的音频来源')
+      statusText.value = '未找到音频来源'
     } else {
       appendLog(`🔴 ${label} 错误：${message}`)
       statusText.value = `错误: ${message}`
@@ -446,6 +448,7 @@ export function SttTab() {
   const params: SttSessionParams = {
     apiKey: isElevenTranslation ? '' : activeApiKey,
     audioDeviceId: effectiveDeviceId,
+    audioSource: sttAudioSource.value,
     model,
     languageHints: isSoniox
       ? sonioxLanguageHints.value
@@ -531,7 +534,7 @@ export function SttTab() {
         return
       }
       // Persist the device fallback here, deferred from render to avoid a signal write during render.
-      if (savedDeviceIdForHook && !deviceStillAvailable) {
+      if (sttAudioSource.value === 'microphone' && savedDeviceIdForHook && !deviceStillAvailable) {
         appendLog('⚠️ 已选麦克风不可用，已切换至系统默认')
         sttAudioDeviceId.value = ''
       }
@@ -743,32 +746,56 @@ export function SttTab() {
         <div class={'my-2'}>
           <div class={HEADING_CLASS}>语音识别设置</div>
           <div class={ROW_CLASS}>
-            <Label htmlFor='sttAudioDevice'>设备</Label>
+            <Label htmlFor='sttAudioSource'>音频来源</Label>
             <NativeSelect
-              id='sttAudioDevice'
+              id='sttAudioSource'
               className='min-w-37.5 flex-1 pr-5'
-              value={savedDeviceId}
+              value={sttAudioSource.value}
               onChange={e => {
-                sttAudioDeviceId.value = e.currentTarget.value
+                sttAudioSource.value = e.currentTarget.value as SttAudioSource
               }}
             >
-              <option value=''>系统默认</option>
-              {devices.map((d, i) => (
-                <option key={d.deviceId || `mic-${i}`} value={d.deviceId}>
-                  {d.label || `麦克风 ${i + 1}`}
-                </option>
-              ))}
-              {savedDeviceMissing && <option value={savedDeviceId}>(已保存设备不可用)</option>}
+              <option value='player'>直播播放器（直接采集）</option>
+              <option value='tab'>标签页音频（备用）</option>
+              <option value='microphone'>麦克风 / 虚拟声卡</option>
             </NativeSelect>
-            {!hasMicLabels && (
-              <Button variant='outline' size='sm' onClick={() => void requestMicPermission()}>
-                授权
-              </Button>
-            )}
-            <Button variant='outline' size='sm' onClick={() => void enumerateMics()}>
-              刷新
-            </Button>
           </div>
+          <p class='text-xs text-gray-500'>
+            {sttAudioSource.value === 'player'
+              ? '先播放直播。直接读取播放器音轨；采集受限时可选标签页音频。'
+              : sttAudioSource.value === 'tab'
+                ? '开始时选择直播标签页，并勾选共享标签页音频。仅将声音发送给识别服务。'
+                : '识别所选麦克风或虚拟声卡的输入声音。'}
+          </p>
+          {sttAudioSource.value === 'microphone' && (
+            <div class={ROW_CLASS}>
+              <Label htmlFor='sttAudioDevice'>设备</Label>
+              <NativeSelect
+                id='sttAudioDevice'
+                className='min-w-37.5 flex-1 pr-5'
+                value={savedDeviceId}
+                onChange={e => {
+                  sttAudioDeviceId.value = e.currentTarget.value
+                }}
+              >
+                <option value=''>系统默认</option>
+                {devices.map((d, i) => (
+                  <option key={d.deviceId || `mic-${i}`} value={d.deviceId}>
+                    {d.label || `麦克风 ${i + 1}`}
+                  </option>
+                ))}
+                {savedDeviceMissing && <option value={savedDeviceId}>(已保存设备不可用)</option>}
+              </NativeSelect>
+              {!hasMicLabels && (
+                <Button variant='outline' size='sm' onClick={() => void requestMicPermission()}>
+                  授权
+                </Button>
+              )}
+              <Button variant='outline' size='sm' onClick={() => void enumerateMics()}>
+                刷新
+              </Button>
+            </div>
+          )}
 
           {modelPicker ? (
             <>

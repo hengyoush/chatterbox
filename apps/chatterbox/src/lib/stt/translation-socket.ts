@@ -12,6 +12,7 @@ interface TranslationSocketControls {
 
 export interface TranslationSocketConfig {
   deviceId: string
+  stream?: MediaStream
   sampleRate: number
   connect: (signal: AbortSignal) => Promise<{ url: string; protocols?: string[] }>
   audio: (frame: Int16Array<ArrayBuffer>) => unknown
@@ -90,6 +91,7 @@ export function createTranslationSocket(config: TranslationSocketConfig, onEvent
     ready = true
     void startPcmCapture({
       deviceId: config.deviceId,
+      stream: config.stream,
       sampleRate: config.sampleRate,
       frameSamples: config.sampleRate / 10,
       onFrame: frame => {
@@ -113,7 +115,7 @@ export function createTranslationSocket(config: TranslationSocketConfig, onEvent
     if (started || settled) return
     started = true
     onEvent({ type: 'state', state: 'connecting' })
-    timer = setTimeout(() => fail(new Error(ready ? '同传麦克风启动超时' : '同传服务连接超时')), CONNECT_TIMEOUT_MS)
+    timer = setTimeout(() => fail(new Error(ready ? '同传音频采集启动超时' : '同传服务连接超时')), CONNECT_TIMEOUT_MS)
     void config
       .connect(controller.signal)
       .then(connection => {

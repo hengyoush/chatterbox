@@ -201,7 +201,12 @@ export function createGeminiEngine(params: SttSessionParams, onEvent: SttEngineE
   }
 
   const beginAudio = async (): Promise<void> => {
-    const cap = await startPcmCapture({ deviceId: params.audioDeviceId, frameSamples: FRAME_SAMPLES, onFrame })
+    const cap = await startPcmCapture({
+      deviceId: params.audioDeviceId,
+      stream: params.audioStream,
+      frameSamples: FRAME_SAMPLES,
+      onFrame,
+    })
     if (settled || stopping) {
       cap.stop()
       return

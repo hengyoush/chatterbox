@@ -23,6 +23,7 @@ import type {
 } from './stt/types'
 
 import { ELEVENLABS_TRANSLATION_MODE } from './const'
+import { createAudioSourceEngine } from './stt/audio-source-engine'
 import { createDeepgramEngine } from './stt/deepgram-engine'
 import { createElevenLabsEngine } from './stt/elevenlabs-engine'
 import { createElevenLabsTranslationEngine } from './stt/elevenlabs-translation-engine'
@@ -103,7 +104,7 @@ export function useSttRecording(config: UseSttRecordingConfig): UseSttRecordingR
     updateState('starting')
 
     const cfg = configRef.current
-    const engine = ENGINE_FACTORIES[cfg.provider](cfg.params, event => {
+    const engine = createAudioSourceEngine(ENGINE_FACTORIES[cfg.provider], cfg.params, event => {
       if (generationRef.current !== generation) return
       switch (event.type) {
         case 'state':

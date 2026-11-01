@@ -63,6 +63,7 @@ export function createElevenLabsEngine(params: SttSessionParams, onEvent: SttEng
   const beginAudio = async (): Promise<void> => {
     const cap = await startPcmCapture({
       deviceId: params.audioDeviceId,
+      stream: params.audioStream,
       onFrame: frame => {
         if (paused || !ws || ws.readyState !== WebSocket.OPEN) return
         ws.send(

@@ -51,6 +51,7 @@ export function createDeepgramEngine(params: SttSessionParams, onEvent: SttEngin
   const beginAudio = async (): Promise<void> => {
     const cap = await startPcmCapture({
       deviceId: params.audioDeviceId,
+      stream: params.audioStream,
       onFrame: frame => {
         // Deepgram takes raw binary PCM16 frames — no base64, no JSON wrapper.
         if (paused || !ws || ws.readyState !== WebSocket.OPEN) return

@@ -3,7 +3,7 @@ import { computed, effect, signal } from '@preact/signals'
 import type { BilibiliEmoticonPackage, FavoriteEmote } from '../types'
 import type { LlmModel } from './llm'
 import type { SonioxModel } from './soniox-models'
-import type { SttModelOption, SttProvider, SttTranslationApi } from './stt/types'
+import type { SttAudioSource, SttModelOption, SttProvider, SttTranslationApi } from './stt/types'
 
 import { GM_deleteValue, GM_getValue, GM_setValue } from '$'
 import {
@@ -333,6 +333,7 @@ export const sttAutoSend = gmSignal('sttAutoSend', true)
 export const sttMaxLength = gmSignal('sttMaxLength', 40)
 export const sttWrapBrackets = gmSignal('sttWrapBrackets', false)
 // '' = system default mic. Validated against the live device list before each start so a stale id (mic unplugged) falls back to default instead of erroring.
+export const sttAudioSource = gmSignal<SttAudioSource>('sttAudioSource', 'player')
 export const sttAudioDeviceId = gmSignal('sttAudioDeviceId', '')
 
 // Migrate legacy flat replacementRules → localGlobalRules (one-time, then delete old key)

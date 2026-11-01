@@ -5,6 +5,7 @@
  */
 
 export type SttProvider = 'soniox' | 'elevenlabs' | 'deepgram' | 'gladia' | 'gemini' | 'openai' | 'openai-compat'
+export type SttAudioSource = 'microphone' | 'player' | 'tab'
 export type SttTranslationApi = 'openai' | 'whisper-cpp'
 
 /** A selectable STT model; `id` is the value sent to the provider (e.g. Deepgram `canonical_name`). */
@@ -59,6 +60,9 @@ export interface SttSessionParams {
   translationApi?: SttTranslationApi
   /** Resolved microphone device id; `''` = system default. */
   audioDeviceId: string
+  audioSource?: SttAudioSource
+  /** Playback stream owned by the session wrapper. */
+  audioStream?: MediaStream
   /** API root: required by `openai-compat`; optional for Gemini and OpenAI. */
   baseUrl?: string
 }

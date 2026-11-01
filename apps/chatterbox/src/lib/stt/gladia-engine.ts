@@ -61,6 +61,7 @@ export function createGladiaEngine(params: SttSessionParams, onEvent: SttEngineE
   const beginAudio = async (): Promise<void> => {
     const cap = await startPcmCapture({
       deviceId: params.audioDeviceId,
+      stream: params.audioStream,
       onFrame: frame => {
         if (settled || stopping || paused || !ws || ws.readyState !== WebSocket.OPEN) return
         ws.send(JSON.stringify({ type: 'audio_chunk', data: { chunk: int16ToBase64(frame) } }))
